@@ -1,0 +1,247 @@
+CAnteen sss
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Canteen System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #165b43;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Campus Canteen</h1>
+    <p>Student Ordering and Discount System</p>
+    <hr>
+```[cite: 9]
+
+---
+
+### 2. `menu.php`
+*(Ensured prices align with code strings `PHP 85`, `PHP 100`, etc., used in the laboratory sheet and `process.php` logic)*[cite: 8, 10]
+```php
+<h2>Available Menu</h2>
+
+<table>
+    <tr>
+        <th>Code</th>
+        <th>Product</th>
+        <th>Price</th>
+    </tr>
+    <tr>
+        <td>M1</td>
+        <td>Chicken Adobo Meal</td>
+        <td>PHP 85.00</td>
+    </tr>
+    <tr>
+        <td>M2</td>
+        <td>Pork Sisig Meal</td>
+        <td>PHP 100.00</td>
+    </tr>
+    <tr>
+        <td>M3</td>
+        <td>Vegetable Meal</td>
+        <td>PHP 70.00</td>
+    </tr>
+    <tr>
+        <td>D1</td>
+        <td>Bottled Water</td>
+        <td>PHP 20.00</td>
+    </tr>
+    <tr>
+        <td>D2</td>
+        <td>Iced Tea</td>
+        <td>PHP 35.00</td>
+    </tr>
+</table>
+```[cite: 8, 10]
+
+---
+
+### 3. `footer.php`
+```php
+<hr>
+<footer>
+    <p>&copy; <?php echo date("Y"); ?> Campus Canteen System</p>
+</footer>
+</div>
+</body>
+</html>
+```[cite: 11]
+
+---
+
+### 4. `index.php`
+```php
+<?php 
+include 'header.php'; 
+include 'menu.php'; 
+?>
+
+<h2>Place Your Order</h2>
+<form method="POST" action="process.php">
+    <label for="customer_name">Name</label>
+    <input type="text" id="customer_name" name="customer_name" required>
+
+    <label for="customer_type">Customer Type</label>
+    <select id="customer_type" name="customer_type">
+        <option value="student">Student</option>
+        <option value="employee">Employee</option>
+        <option value="guest">Guest</option>
+    </select>
+
+    <label for="product">Product</label>
+    <select id="product" name="product">
+        <option value="M1">Chicken Adobo Meal</option>
+        <option value="M2">Pork Sisig Meal</option>
+        <option value="M3">Vegetable Meal</option>
+        <option value="D1">Bottled Water</option>
+        <option value="D2">Iced Tea</option>
+    </select>
+
+    <label for="quantity">Quantity (1–10)</label>
+    <input type="number" id="quantity" name="quantity" min="1" max="10" required>
+
+    <label for="budget">Budget (PHP)</label>
+    <input type="number" id="budget" name="budget" min="0" step="0.01" required>
+
+    <button type="submit">Process Order</button>
+</form>
+
+<?php 
+include 'footer.php'; 
+?>
+```[cite: 8]
+
+---
+
+### 5. `process.php`
+```php
+<?php
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: index.php");
+    exit;
+}
+
+$name = trim($_POST['customer_name'] ?? '');
+$type = $_POST['customer_type'] ?? '';
+$product = $_POST['product'] ?? '';
+$quantity = filter_var($_POST['quantity'] ?? null, FILTER_VALIDATE_INT);
+$budget = filter_var($_POST['budget'] ?? null, FILTER_VALIDATE_FLOAT);
+
+$valid = $name !== ''
+    && in_array($type, ['student', 'employee', 'guest'], true)
+    && in_array($product, ['M1', 'M2', 'M3', 'D1', 'D2'], true)
+    && $quantity !== false && $quantity !== null
+    && $quantity >= 1 && $quantity <= 10
+    && $budget !== false && $budget !== null
+    && $budget >= 0 && is_finite($budget);
+
+if (!$valid) {
+    include 'header.php';
+    echo '<p class="error">Invalid order. Please check your input.</p>';
+    echo '<a href="index.php">Return to form</a>';
+    include 'footer.php';
+    exit;
+}
+
+// PHP 8 match expression: each arm returns a product record.
+$item = match ($product) {
+    'M1' => ['Chicken Adobo Meal', 85, true],
+    'M2' => ['Pork Sisig Meal', 100, true],
+    'M3' => ['Vegetable Meal', 70, true],
+    'D1' => ['Bottled Water', 20, false],
+    'D2' => ['Iced Tea', 35, false]
+};
+
+[$productName, $price, $isFood] = $item;
+$subtotal = $price * $quantity;
+
+if ($isFood && $type === 'student') {
+    $rate = .10;
+} elseif ($isFood && $type === 'employee') {
+    $rate = .05;
+} else {
+    $rate = 0;
+}
+
+$discount = $subtotal * $rate;
+$total = $subtotal - $discount;
+
+include 'header.php';
+echo '<h2>Order Receipt</h2>';
+echo '<p>Customer: ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '</p>';
+echo '<p>Customer type: ' . htmlspecialchars(ucfirst($type)) . '</p>';
+echo '<h3>Items Ordered</h3>';
+
+for ($i = 1; $i <= $quantity; $i++) {
+    echo '<p>Item ' . $i . ': ' . htmlspecialchars($productName) . ' - PHP ' . number_format($price, 2) . '</p>';
+}
+
+echo '<p>Subtotal: PHP ' . number_format($subtotal, 2) . '</p>';
+echo '<p>Discount: PHP ' . number_format($discount, 2) . '</p>';
+echo '<h2>Final Bill: PHP ' . number_format($total, 2) . '</h2>';
+echo '<p>Budget: PHP ' . number_format($budget, 2) . '</p>';
+
+if ($budget >= $total) {
+    echo '<p class="success">Budget is sufficient!</p>';
+    echo '<p>Balance: PHP ' . number_format($budget - $total, 2) . '</p>';
+} else {
+    echo '<p class="error">Insufficient budget!</p>';
+    echo '<p>Shortage: PHP ' . number_format($total - $budget, 2) . '</p>';
+}
+
+echo '<h3>Preparation Progress</h3>';
+$counter = 1;
+while ($counter <= $quantity) {
+    echo '<p>Preparing item ' . $counter . ' of ' . $quantity . '</p>';
+    $counter++;
+}
+
+echo '<p><a href="index.php">Place another order</a></p>';
+include 'footer.php';
+?>
+```[cite: 8]
